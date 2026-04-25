@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test 2</title>
+
+    <style>
+      #createTask {
+        background-color: #499fc7;
+      }
+
+      .task-item {
+        margin-bottom: 20px;
+        p {
+          margin: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="actions">
+        <input type="text" class="title" />
+        <input type="text" class="status" />
+        <button id="createTask" onclick="createTask()">Create task</button>
+      </div>
+      <div class="tasks-list"></div>
+    </div>
+  </body>
+
+  <script>
+    const apiUrl = "http://localhost:3000";
+
+    const titleInput = document.querySelector(".title");
+    const statusInput = document.querySelector(".status");
+    const tasksList = document.querySelector(".tasks-list");
+
+    const createElement = function (id, titleValue, statusValue) {
+      const taskContainer = document.createElement("div");
+      taskContainer.className = "task-item"; // Useful for CSS
+      taskContainer.setAttribute("data-id", id);
+      taskContainer.setAttribute("data-status", statusValue);
+
+      const title = document.createElement("p");
+      title.textContent = titleValue;
+
+      const status = document.createElement("input");
+      status.placeholder = "Status";
+      status.value = statusValue;
+
+      const updateBtn = document.createElement("button");
+      updateBtn.textContent = "Update";
+      updateBtn.addEventListener("click", (e) => TaskEvents("update", e));
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Delete";
+      deleteBtn.addEventListener("click", (e) => TaskEvents("delete", e));
+
+      taskContainer.appendChild(title);
+      taskContainer.appendChild(status);
+      taskContainer.appendChild(updateBtn);
+      taskContainer.appendChild(deleteBtn);
+
+      tasksList.appendChild(taskContainer);
+    };
+
+    const TaskEvents = function (event, e) {
+      const taskItem = e.target.parentElement;
+      const id = taskItem.getAttribute("data-id");
+      const status = taskItem.querySelector("input").value;
+
+      if (event === "update") {
+        updateTask(id, status);
+      } else if (event === "delete") {
+        deleteTask(id);
+      }
+    };
+
+    const getTasks = async function () {
+      const tasksData = await fetch(`${apiUrl}/tasks`);
+      const data = await tasksData.json();
+
+      if (data && data.success) {
+        if (data.tasks.length > 0) {
+          data.tasks.forEach((task) => {
+            createElement(task.id, task.title, task.status);
+          });
+        } else {
+          const message = document.createElement("p");
+          message.textContent = "You have no tasks.";
+          tasksList.appendChild(message);
+        }
+      }
+
+      return tasksData;
+    };
+
+    getTasks();
+
+    const createTask = async function () {
+      const response = await fetch(`${apiUrl}/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: titleInput.value,
+          status: statusInput.value,
+        }),
+      });
+
+      const data = await response.json();
+      if (data && data.success) {
+        const task = data.task;
+        createElement(task.id, task.title, task.status);
+      }
+    };
+
+    const updateTask = async function (id, status) {
+      const response = await fetch(`${apiUrl}/tasks/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: status,
+        }),
+      });
+
+      const data = await response.json();
+      if (data && data.success) {
+        location.reload();
+      }
+    };
+
+    const deleteTask = async function (id) {
+      const response = await fetch(`${apiUrl}/tasks/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      if (data && data.success) {
+        location.reload();
+      }
+    };
+  </script>
+</html>
